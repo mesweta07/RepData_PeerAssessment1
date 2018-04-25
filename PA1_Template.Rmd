@@ -1,0 +1,117 @@
+---
+title: 'Reproducible Research: Week2'
+author: "Sweta Mohanty"
+date: "10/04/2018"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+#### Reading the data
+```{r, include=TRUE,echo=TRUE}
+analysis<-read.csv("activity.csv",header=TRUE)
+```
+#### Transforming the data
+```{r,include=TRUE,echo=TRUE }
+analysis$date<-as.Date(as.character(analysis$date))
+analysisNA<-is.na(analysis$steps)
+newanalysis<-analysis[!analysisNA,]
+```
+### What is mean total number of steps taken per day?
+#### Total no of steps per day
+
+```{r,include=TRUE,echo=TRUE }
+totalsteps<-aggregate(newanalysis$steps,by=list(newanalysis$date),sum)
+names(totalsteps)[1]<-"Date"
+names(totalsteps)[2]<-"Steps"
+totalsteps
+```
+
+#### Plotting the histogram
+```{r,include=TRUE,echo=TRUE }
+hist(totalsteps$Steps,breaks= nrow(totalsteps),main="Histogram for Total Steps",xlab="Total Steps",col="Green")
+```
+
+#### Mean of Total Steps
+```{r,include=TRUE,echo=TRUE }
+mean(totalsteps$Steps)
+```
+#### Median of Total Steps
+```{r,include=TRUE,echo=TRUE}
+median(totalsteps$Steps)
+```
+### What is the average daily activity pattern?
+#### Average steps per interval
+
+```{r,include=TRUE,echo=FALSE}
+dailyactivity<-aggregate(newanalysis$steps,by=list(newanalysis$interval),sum)
+names(dailyactivity)[1]<-"Interval"
+names(dailyactivity)[2]<-"Steps"
+```
+
+#### Plotting the activity
+
+```{r,include=TRUE,echo=TRUE}
+plot(dailyactivity$Interval,dailyactivity$Steps,type="l",main="Daily Activity Pattern",xlab="5 min interval",ylab="Average daily steps")
+```
+
+#### Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps
+
+```{r,include=TRUE,echo=TRUE}
+maxinterval<-dailyactivity[which.max(dailyactivity$Steps),]
+maxinterval
+```
+### Imputing missing values
+
+#### Total no. of missing values
+```{r,include=TRUE,echo=TRUE}
+missingrow<-sum(analysisNA)
+missingrow
+```
+
+#### Replacing the missing values with median steps of the time interval
+
+```{r,include=TRUE,echo=TRUE}
+analysis1<-analysis
+medianval<-tapply(newanalysis$steps,newanalysis$interval,mean,na.rm=TRUE,simplify = TRUE)
+analysis1$steps[analysisNA]<-medianval[as.character(analysis1$interval[analysisNA])]
+sum(is.na(analysis1$steps))
+```
+#### Plotting the activity with filled in missing steps
+
+```{r,include=TRUE,echo=TRUE}
+totalsteps1<-aggregate(analysis1$steps,by=list(analysis1$date),sum)
+names(totalsteps1)[1]<-"Date"
+names(totalsteps1)[2]<-"Steps"
+hist(totalsteps1$Steps,breaks= nrow(totalsteps1),main="Histogram for Total Steps",xlab="Total Steps",col="Green")
+```
+
+#### Mean of Total steps
+```{r,include=TRUE,echo=TRUE}
+mean(totalsteps1$Steps)
+```
+
+#### Median of Total steps
+
+```{r,include=TRUE,echo=TRUE}
+median(totalsteps1$Steps)
+```
+#### The mean of the daily total steps are same for both data sets. But the median has changed once the missings values were filled in.
+
+### Are there differences in activity patterns between weekdays and weekends?
+```{r,include=TRUE,echo=TRUE}
+analysis1$Daytype<-weekdays(analysis1$date)
+analysis1$Daytype<-ifelse(analysis1$Daytype=="Saturday"|analysis1$Daytype=="Sunday","Weekend","Weekday")
+```
+#### Mean of Steps by  Interval and day type
+
+```{r,include=TRUE,echo=TRUE,eval=TRUE}
+library(ggplot2)
+meandaytype<-aggregate(analysis1$steps,by=list(analysis1$Daytype,analysis1$interval),mean)
+names(meandaytype)[1]<-"Daytype"
+names(meandaytype)[2]<-"Interval"
+names(meandaytype)[3]<-"steps"
+
+p<-ggplot(meandaytype,aes(x=Interval,y= steps,color=Daytype)) + geom_line()+facet_grid(Daytype~.)+labs(title="Mean steps per inteval and day type",x="Interval",y="MeanSteps")
+print(p)
+```
+
